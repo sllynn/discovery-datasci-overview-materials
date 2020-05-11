@@ -30,6 +30,7 @@ from sklearn.model_selection import train_test_split, cross_val_score
 from pyspark.sql.functions import *
 
 import mlflow
+import mlflow.sklearn
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -64,10 +65,34 @@ X_train, X_test, Y_train, Y_test = train_test_split(pdDf[predictors], pdDf[targe
 
 # COMMAND ----------
 
+
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC # Parallel model selection with sklearn.model_selection and joblibspark
 # MAGIC 
 # MAGIC - Install joblibspark
+
+# COMMAND ----------
+
+from sklearn.metrics import roc_auc_score, accuracy_score, mean_squared_error, mean_absolute_error, r2_score
+
+def eval_metrics(estimator, X, Y):
+  predictions = estimator.predict(X)
+
+  # Calc metrics
+  metrics = dict(
+    acc = accuracy_score(Y, predictions),
+    roc = roc_auc_score(Y, predictions),
+    mse = mean_squared_error(Y, predictions),
+    mae = mean_absolute_error(Y, predictions),
+    r2 = r2_score(Y_test, predictions)
+  )
+  
+  print(metrics)
+  
+  return metrics
 
 # COMMAND ----------
 
@@ -110,11 +135,12 @@ with mlflow.start_run(run_name="Random Search - RandomForest") as run:
     with parallel_backend('spark', n_jobs=3):
       rf_random.fit(X_train, Y_train)
     # log metrics
-    eval_and_log_metrics(rf_random.best_estimator_, X_test, Y_test)
+    metrics = eval_metrics(rf_random.best_estimator_, X_test, Y_test)
+    mlflow.log_metrics(metrics)
     # log best model
     mlflow.sklearn.log_model(rf_random.best_estimator_, "random-forest-model-best")
     # log best parameters
-    mlflow.log_param("best_set_of_parameters", rf_random.cv_results_['params'][rf_random.best_index_])
+    mlflow.log_params(rf_random.cv_results_['params'][rf_random.best_index_])
 
 # COMMAND ----------
 

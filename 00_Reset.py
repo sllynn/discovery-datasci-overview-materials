@@ -25,12 +25,6 @@ for run in runs.collect():
 
 # COMMAND ----------
 
-# dbutils.fs.cp("/databricks-datasets/samples/population-vs-price/data_geo.csv", "/stuart/demo/samples/population-vs-price/data_geo.csv")
-# dbutils.fs.cp("/databricks-datasets/samples/people/people.json", "/stuart/demo/samples/people/people.json")
-# dbutils.fs.cp("/databricks-datasets/samples/lending_club/parquet", "/stuart/demo/samples/lending_club/parquet", True)
-
-# COMMAND ----------
-
 # MAGIC %sql
 # MAGIC drop table if exists covid.timeseries;
 # MAGIC drop table if exists lending_club.cleaned;
@@ -38,8 +32,13 @@ for run in runs.collect():
 
 # COMMAND ----------
 
-dbutils.fs.rm("abfss://mldemo@shareddatalake.dfs.core.windows.net/lending_club/cleaned", True)
-dbutils.fs.rm("abfss://mldemo@shareddatalake.dfs.core.windows.net/lending_club/model_test", True)
+dbutils.fs.rm("/home/stuart/datasets/lending_club/cleaned", True)
+dbutils.fs.rm("/home/stuart/datasets/lending_club/model_test", True)
+
+# COMMAND ----------
+
+# dbutils.fs.rm("abfss://mldemo@shareddatalake.dfs.core.windows.net/lending_club/cleaned", True)
+# dbutils.fs.rm("abfss://mldemo@shareddatalake.dfs.core.windows.net/lending_club/model_test", True)
 
 # COMMAND ----------
 
