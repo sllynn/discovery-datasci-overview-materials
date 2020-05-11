@@ -1,8 +1,8 @@
-# Rolls-Royce // Databricks
+# Discovery Health // Databricks
 
 ## Data Science & Machine Learning: platform overview
 
-The materials in this repository accompany the session delivered on 7th May 2020.
+The materials in this repository accompany the session delivered on 11th May 2020.
 
 
 
@@ -83,7 +83,7 @@ Batch-at-a-time data loading for training of neural networks on datasets whose s
 
 ### Other material
 
-Slides for the session are located [here](https://docs.google.com/presentation/d/1fLWMs5jkDGoVVkhqlbUe8qbK5N9cmtaD1sr_B-Ym-WA/edit?usp=sharing) and should be accessible immediately after the session.
+Slides for the session are located [here](https://docs.google.com/presentation/d/1i8zu-YAqwCuYtL1FjFSZ-ufF5d_lmFEIddlNiR0Zflk/edit?usp=sharing) and should be accessible immediately after the session.
 
 
 
