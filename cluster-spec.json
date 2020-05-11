@@ -1,0 +1,24 @@
+{
+    "num_workers": 4,
+    "cluster_name": "datasci-overview",
+    "spark_version": "6.5.x-cpu-ml-scala2.11",
+    "spark_conf": {
+        "spark.databricks.delta.preview.enabled": "true",
+        "spark.databricks.pyspark.trustedFilesystems": "com.databricks.adl.AdlFileSystem,com.databricks.s3a.S3AFileSystem,shaded.databricks.org.apache.hadoop.fs.azure.NativeAzureFileSystem,shaded.databricks.v20180920_b33d810.org.apache.hadoop.fs.azurebfs.SecureAzureBlobFileSystem,org.apache.hadoop.fs.LocalFileSystem",
+        "spark.databricks.repl.allowedLanguages": "python,sql,scala",
+        "spark.databricks.cluster.profile": "serverless"
+    },
+    "node_type_id": "Standard_L8s",
+    "driver_node_type_id": "Standard_L8s",
+    "ssh_public_keys": [],
+    "custom_tags": {
+        "ResourceClass": "Serverless"
+    },
+    "spark_env_vars": {
+        "PYSPARK_PIN_THREAD": "true"
+    },
+    "autotermination_minutes": 120,
+    "enable_elastic_disk": true,
+    "cluster_source": "UI",
+    "init_scripts": []
+}
