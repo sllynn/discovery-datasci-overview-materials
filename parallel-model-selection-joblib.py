@@ -29,6 +29,8 @@ from sklearn.model_selection import train_test_split, cross_val_score
 
 from pyspark.sql.functions import *
 
+import mlflow
+
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -51,41 +53,6 @@ target = 'bad_loan'
 
 # COMMAND ----------
 
-# MAGIC %md ## List and compare models from tracking server
-
-# COMMAND ----------
-
-# DBTITLE 1,Get MLflow Experiment ID
-from mlflow.tracking import MlflowClient
-
-path = "/Shared/lending_club"
-
-client = MlflowClient()
-experimentID = [e.experiment_id for e in client.list_experiments() if e.name==path][0]
-experimentID
-
-# COMMAND ----------
-
-# DBTITLE 1,Get all runs for our experiment
-runs = spark.read.format("mlflow-experiment").load(experimentID)
-
-display(runs)
-
-# COMMAND ----------
-
-# DBTITLE 1,Pick run with top ROC
-best_run_id = runs.orderBy(desc("metrics.roc")).limit(1).select("run_id").collect()[0].run_id
-best_run_id
-
-# COMMAND ----------
-
-# DBTITLE 1,Retrieve model as scikit-learn model and score on Pandas DataFrame
-import mlflow.sklearn
-model = mlflow.sklearn.load_model(model_uri=f"runs:/{best_run_id}/random-forest-model")
-model
-
-# COMMAND ----------
-
 pdDf = df.toPandas()
 
 for col in pdDf.columns:
@@ -93,57 +60,7 @@ for col in pdDf.columns:
     pdDf[col] =  pdDf[col].astype('category').cat.codes
   pdDf[col] = pdDf[col].fillna(0)
     
-X_test, Y_test = pdDf[predictors], pdDf[target]
-
-# COMMAND ----------
-
-predictions = model.predict(X_test)
-predictions[:20]
-
-# COMMAND ----------
-
-spark.createDataFrame(pdDf).createOrReplaceTempView("model_test")
-
-# COMMAND ----------
-
-# DBTITLE 1,Retrieve model with mlflow.pyfunc.spark_udf and push into Spark pipeline
-import mlflow.pyfunc
-spark_model = mlflow.pyfunc.spark_udf(spark, model_uri=f"runs:/{best_run_id}/random-forest-model")
-spark_model
-
-# COMMAND ----------
-
-predictions_df = spark.table("model_test").withColumn("prediction", spark_model(*predictors))
-display(predictions_df)
-
-# COMMAND ----------
-
-# DBTITLE 1,Use the model in a Spark Structured Streaming pipeline?
-# write our dataset out first to allow us to simulate streaming
-(
-  spark.table("model_test")
-  .repartition(200)
-  .write
-  .mode("overwrite")
-  .csv("abfss://mldemo@shareddatalake.dfs.core.windows.net/lending_club/model_test/", header=True)
-)
-
-# COMMAND ----------
-
-model_test_schema = spark.table("model_test").schema
-
-streaming_df = (
-  spark.readStream
-  .format("csv")
-  .schema(model_test_schema)
-  .option("maxFilesPerTrigger", 1)
-  .option("header", True)
-  .load("abfss://mldemo@shareddatalake.dfs.core.windows.net/lending_club/model_test/")
-)
-
-scored_stream_df = streaming_df.withColumn("prediction", spark_model(*predictors))
-
-display(scored_stream_df)
+X_train, X_test, Y_train, Y_test = train_test_split(pdDf[predictors], pdDf[target], test_size=0.2)
 
 # COMMAND ----------
 
@@ -204,129 +121,6 @@ with mlflow.start_run(run_name="Random Search - RandomForest") as run:
 # DBTITLE 1,Best combination of parameters
 best_set_of_parameters = rf_random.cv_results_['params'][rf_random.best_index_]
 best_set_of_parameters
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC # Registering a model
-
-# COMMAND ----------
-
-# DBTITLE 1,Get ID of run with best 'roc auc' score & register the model in Model Registry
-run_id = runs.orderBy(desc("metrics.roc")).limit(1).select("run_id").collect()[0].run_id
-model_name = "random-forest-model-best"
-
-result = mlflow.register_model(
-    f"runs:/{run_id}/{model_name}",
-    model_name
-)
-
-# COMMAND ----------
-
-result
-
-# COMMAND ----------
-
-# DBTITLE 1,Promote this version to 'deployment ready' status
-client.transition_model_version_stage(
-    name=result.name,
-    version=result.version,
-    stage="Production"
-)
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC # Deploying the model into a Spark pipeline
-
-# COMMAND ----------
-
-current_prod_model = [mv.source for mv in client.search_model_versions(f"name='{model_name}'") if mv.current_stage == "Production"][0]
-print(current_prod_model)
-
-# COMMAND ----------
-
-mlflow.pyfunc.spark_udf(spark, current_prod_model)
-
-# COMMAND ----------
-
-# DBTITLE 1,Get ID of run with best 'roc auc' score & load the model from MLflow
-run_id = runs.toPandas().sort_values("roc", ascending=False)["run_id"][0]
-print(run_id)
-
-path="random-forest-model-best"
-model_uri = "runs:/" + run_id + "/" + path
-
-import mlflow.sklearn
-
-model = mlflow.sklearn.load_model(model_uri=model_uri)
-model.predict(X_test)
-
-# COMMAND ----------
-
-print(model_uri)
-
-# COMMAND ----------
-
-display(spark.read.format("mlflow-experiment").load(experimentID))
-
-# COMMAND ----------
-
-spark.read.format("mlflow-experiment").load(experimentID).createOrReplaceTempView("my_mlflow_exp")
-
-# COMMAND ----------
-
-# MAGIC %sql
-# MAGIC select run_id, params.n_estimators, metrics.acc, metrics.roc
-# MAGIC from my_mlflow_exp
-# MAGIC where metrics.roc>0.7
-
-# COMMAND ----------
-
-# MAGIC %md ## Model deployment
-
-# COMMAND ----------
-
-# DBTITLE 1,Create Spark DataFrame with test data
-spark_df = spark.createDataFrame(pd.DataFrame(X_test))
-display(spark_df)
-
-# COMMAND ----------
-
-# DBTITLE 1,Create pandas UDF for our selected model/run
-pyfunc_udf = mlflow.pyfunc.spark_udf(spark, model_uri=model_uri)
-
-# COMMAND ----------
-
-# DBTITLE 1,Predict using pandas UDF and DataFrame API
-df = spark_df.withColumn("prediction", pyfunc_udf(*spark_df.columns))  
-display(df)
-
-# COMMAND ----------
-
-# DBTITLE 1,Register our UDF to be used in SQL
-spark_df.registerTempTable("sql_table_example")
-spark.udf.register("model", pyfunc_udf)
-
-# COMMAND ----------
-
-# DBTITLE 1,Run prediction from SQL with Spark SQL
-# MAGIC %sql
-# MAGIC select *, model(term, home_ownership, purpose, addr_state, verification_status, application_type, loan_amnt, emp_length, annual_inc,dti, delinq_2yrs, revol_util, total_acc, credit_length_in_years, int_rate, net, issue_year) as predictions from sql_table_example
-
-# COMMAND ----------
-
-streamDF = spark.readStream.format("delta").load("/ml/tmp/loans.delta")
-streamDF.createOrReplaceTempView("loans_stream")
-
-# COMMAND ----------
-
-df.write.format("delta").mode("overwrite").save("/ml/tmp/loans.delta")
-
-# COMMAND ----------
-
-# MAGIC %sql
-# MAGIC select *, model(term, home_ownership, purpose, addr_state, verification_status, application_type, loan_amnt, emp_length, annual_inc,dti, delinq_2yrs, revol_util, total_acc, credit_length_in_years, int_rate, net, issue_year) as predictions from loans_stream
 
 # COMMAND ----------
 

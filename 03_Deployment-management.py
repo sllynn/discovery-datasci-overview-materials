@@ -110,7 +110,7 @@ streaming_df = (
   spark.readStream
   .format("delta")
   .option("maxFilesPerTrigger", 1)
-  .load("abfss://mldemo@shareddatalake.dfs.core.windows.net/lending_club/model_test/")
+  .load("/home/stuart/datasets/lending_club/model_test/")
 )
 
 scored_stream_df = streaming_df.withColumn("prediction", spark_model(*predictors))
@@ -159,14 +159,14 @@ client.transition_model_version_stage(
 
 # COMMAND ----------
 
-client.search_model_versions(f"name='{model_name}'")
-
-# COMMAND ----------
-
-current_prod_model = [mv.source for mv in client.search_model_versions(f"name='{model_name}'") if mv.current_stage == "Production"][0]
+current_prod_model = f"models:/{model_name}/production"
 spark_model = mlflow.pyfunc.spark_udf(spark, current_prod_model)
 predictions_df = spark.table("lending_club.model_test").withColumn("prediction", spark_model(*predictors))
 display(predictions_df)
+
+# COMMAND ----------
+
+dbutils.notebook.exit("0")
 
 # COMMAND ----------
 

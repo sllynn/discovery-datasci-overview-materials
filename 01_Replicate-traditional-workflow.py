@@ -28,23 +28,27 @@ display(
 
 # COMMAND ----------
 
-# MAGIC %fs head /stuart/demo/samples/people/people.json
+# MAGIC %fs head /databricks-datasets/samples/people/people.json
 
 # COMMAND ----------
 
 # DBTITLE 1,Read a .json file (row per observation)
 display(
   spark.read
-  .json("/stuart/demo/samples/people/", multiLine=True)
+  .json("/databricks-datasets/samples/people/", multiLine=True)
 )
 
 # COMMAND ----------
 
-# DBTITLE 1,Read delta table directly from Azure Data Lake Storage
+# MAGIC %fs mounts
+
+# COMMAND ----------
+
+# DBTITLE 1,Read delta table from S3
 display(
   spark.read
   .format("delta")
-  .load("abfss://covid@shareddatalake.dfs.core.windows.net/timeseries")
+  .load("/home/stuart/datasets/covid/timeseries") # could also be s3a:// url
 )
 
 # COMMAND ----------
@@ -54,7 +58,7 @@ display(
 # MAGIC drop table if exists covid.timeseries;
 # MAGIC create table covid.timeseries 
 # MAGIC using delta
-# MAGIC location 'abfss://covid@shareddatalake.dfs.core.windows.net/timeseries'
+# MAGIC location '/home/stuart/datasets/covid/timeseries'
 
 # COMMAND ----------
 
@@ -67,7 +71,7 @@ display(
 # MAGIC %sql
 # MAGIC select *
 # MAGIC from covid.timeseries
-# MAGIC where Country_Region = "UK"
+# MAGIC where Country_Region = "United Kingdom"
 
 # COMMAND ----------
 
@@ -138,7 +142,7 @@ display(df)
 
 # COMMAND ----------
 
-# DBTITLE 1,Save this cleaned dataframe as a new Delta table on ADLS and register in metastore
+# DBTITLE 1,Save this cleaned dataframe as a new Delta table on S3 and register in metastore
 df.createOrReplaceTempView("lending_club_cleaned")
 
 # COMMAND ----------
@@ -161,7 +165,7 @@ df.createOrReplaceTempView("lending_club_cleaned")
   .format("delta")
   .mode("overwrite")
   .partitionBy("issue_d")
-  .saveAsTable(name="lending_club.cleaned", path="abfss://mldemo@shareddatalake.dfs.core.windows.net/lending_club/cleaned")
+  .saveAsTable(name="lending_club.cleaned", path="/home/stuart/datasets/lending_club/cleaned")
 )
 
 df = spark.table("lending_club.cleaned")
@@ -250,7 +254,7 @@ print(importance)
   spark.createDataFrame(pdDf).write
   .format("delta")
   .mode("overwrite")
-  .saveAsTable(name="lending_club.model_test", path="abfss://mldemo@shareddatalake.dfs.core.windows.net/lending_club/model_test")
+  .saveAsTable(name="lending_club.model_test", path="/home/stuart/datasets/lending_club/model_test")
 )
 
 # COMMAND ----------

@@ -2,14 +2,21 @@
     "num_workers": 4,
     "cluster_name": "datasci-overview",
     "spark_version": "6.5.x-cpu-ml-scala2.11",
+  "aws_attributes": {
+    "zone_id": "us-west-2c",
+    "first_on_demand": 1,
+    "availability": "SPOT_WITH_FALLBACK",
+    "instance_profile_arn": "arn:aws:iam::997819012307:instance-profile/shard-demo-s3-access",
+    "spot_bid_price_percent": 100,
+    "ebs_volume_count": 0
+  },
     "spark_conf": {
         "spark.databricks.delta.preview.enabled": "true",
-        "spark.databricks.pyspark.trustedFilesystems": "com.databricks.adl.AdlFileSystem,com.databricks.s3a.S3AFileSystem,shaded.databricks.org.apache.hadoop.fs.azure.NativeAzureFileSystem,shaded.databricks.v20180920_b33d810.org.apache.hadoop.fs.azurebfs.SecureAzureBlobFileSystem,org.apache.hadoop.fs.LocalFileSystem",
         "spark.databricks.repl.allowedLanguages": "python,sql,scala",
         "spark.databricks.cluster.profile": "serverless"
     },
-    "node_type_id": "Standard_L8s",
-    "driver_node_type_id": "Standard_L8s",
+  "node_type_id": "i3.2xlarge",
+  "driver_node_type_id": "i3.4xlarge",
     "ssh_public_keys": [],
     "custom_tags": {
         "ResourceClass": "Serverless"

@@ -4,7 +4,7 @@ client = MlflowClient()
 
 # COMMAND ----------
 
-path = "/Users/stuart.lynn@databricks.com/customers/rolls-royce/02_Introduction-to-tracking"
+path = "/Users/stuart.lynn@databricks.com/customers/discovery/datasci-overview/02_Introduction-to-tracking"
 model_name = "random-forest-model"
 
 # COMMAND ----------

@@ -364,6 +364,8 @@ results.createOrReplaceTempView('new_forecasts')
 # COMMAND ----------
 
 # MAGIC %sql
+# MAGIC create database if not exists datasci_overview;
+# MAGIC use datasci_overview;
 # MAGIC -- create forecast table
 # MAGIC create table if not exists forecasts (
 # MAGIC   date date,
@@ -445,7 +447,7 @@ results.createOrReplaceTempView('new_forecast_evals')
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC 
+# MAGIC use datasci_overview;
 # MAGIC create table if not exists forecast_evals (
 # MAGIC   store integer,
 # MAGIC   item integer,
