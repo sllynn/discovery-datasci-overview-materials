@@ -2,7 +2,7 @@
 
 ## Data Science & Machine Learning: platform overview
 
-The materials in this repository accompany the session delivered on 11th May 2020.
+The materials in this repository accompany the session delivered on 12th May 2020.
 
 
 
